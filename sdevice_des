@@ -1,0 +1,156 @@
+
+Device MOSCAP {
+Electrode {
+	{ Name= "Vg"  Voltage= 0.0 Workfunction = 4.15}
+	{ Name="Vb" Voltage=0.0 Workfunction = 4.15 }
+}
+
+File {
+	Grid=      "moscap_msh.tdr"
+	Current=   "MOSCAP.plt"
+	Plot=      "MOSCAP.tdr"
+	Parameter=  "sdevice.par"
+}
+
+Physics {
+	EffectiveIntrinsicDensity( NoBandgapNarrowing )     
+	Mobility(
+			DopingDep
+			eHighFieldsaturation( GradQuasiFermi )
+			hHighFieldsaturation( GradQuasiFermi )
+			Enormal
+		)
+	hQuantumPotential
+	Recombination(
+			SRH( DopingDep 
+			Tunneling(Hurkx ))
+			Band2Band (E2 )
+			Band2Band (Hurkx)
+			eBarrierTunneling(Band2Band TwoBand Transmission) 
+			hBarrierTunneling(Band2Band TwoBand Transmission)
+			
+	     )    	
+       
+
+#}
+#Physics (material= "Anyinsulator") {
+      Traps(
+	    (Donor Level EnergyMid= 2.5 FromConductionBand 
+	    Conc= 1e19
+	    #eXSection= 1e-13 hXSection= 1e-13
+	    #eBarrierTunneling(NonLocal= "Gateoxb_Substrate" NonLocal= "Gateoxt_Polygate") 
+		#hBarrierTunneling(NonLocal= "Gateoxb_Substrate" NonLocal= "Gateoxt_Polygate")
+	    PooleFrenkel
+        TrapVolume= 1e-15
+	   )
+	   (Acceptor Level EnergyMid= 3.3 FromConductionBand 
+	    Conc= 1e19
+	    #eXSection= 1e-13 hXSection= 1e-13
+	    #eBarrierTunneling(NonLocal= "Gateoxb_Substrate" NonLocal= "Gateoxt_Polygate") 
+		#hBarrierTunneling(NonLocal= "Gateoxb_Substrate" NonLocal= "Gateoxt_Polygate")		
+	    PooleFrenkel
+        TrapVolume= 1e-15
+        )
+	)
+}
+
+Plot {
+	*--Density and Currents, etc
+	eDensity hDensity
+	TotalCurrent/Vector eCurrent/Vector hCurrent/Vector
+	eMobility hMobility
+	*eVelocity hVelocity
+	eQuasiFermi hQuasiFermi
+
+	*--Temperature 
+	* eTemperature Temperature * hTemperature
+
+	*--Fields and charges
+	ElectricField/Vector Potential SpaceCharge
+
+	*--Doping Profiles
+	Doping DonorConcentration AcceptorConcentration
+
+	*--Generation/Recombination
+	SRH Band2Band * Auger
+	* AvalancheGeneration eAvalancheGeneration hAvalancheGeneration
+                
+                *-Gate Tunneling/Hot carrier injection
+                FowlerNordheim 
+  	HotElectronInjection HotHoleInjection
+
+	*-Tunneling
+  	BarrierTunneling eBarrierTunneling hBarrierTunneling
+  	eDirectTunnel hDirectTunnel
+	
+	*--Driving forces
+	*eGradQuasiFermi/Vector hGradQuasiFermi/Vector
+	*eEparallel hEparallel eENormal hENormal
+
+	*--Band structure/Composition
+	*BandGap 
+	*BandGapNarrowing
+	*Affinity
+	ConductionBand ValenceBand
+	hQuantumPotential
+	eInterfaceTrappedCharge hInterfaceTrappedCharge
+	TotalInterfaceTrapConcentration TotalTrapConcentration
+	eBarrierTunneling
+	hBarrierTunneling
+	nonlocal
+
+}
+}
+Math {
+        	
+	Extrapolate
+	RelErrControl
+	Notdamped=50
+	Iterations=200 
+        	ExtendedPrecision
+}
+
+File {
+     Output =    "MOSCAP.log"
+     ACExtract = "100us_LF.plt"
+}
+
+System {
+MOSCAP mc1 ("Vg"=g )
+	
+	Vsource_pset vg (g 0) {dc=0}
+	#Vsource_pset vb (b 0) {dc=0}
+}
+ 
+
+Solve{
+	Poisson
+        Coupled { Poisson Electron Hole }
+        
+	Quasistationary (
+	InitialStep=0.001 MaxStep=0.01 MinStep=1.e-5
+	Goal { Parameter=vg.dc Voltage=20 }
+	)
+
+	{ Coupled { Poisson Electron Hole } }
+
+	Quasistationary (
+	InitialStep=0.001 MaxStep=0.01 MinStep=1.e-5
+	Goal { Parameter=vg.dc Voltage=-20 }
+	)
+	{ ACCoupled (
+	StartFrequency=1 EndFrequency=1.e6
+	NumberOfPoints=1 Decade
+	Node(g) Exclude(vg)
+	)
+	{ Poisson Electron Hole }
+	}
+}
+	         
+
+
+
+
+
+
+

@@ -1,0 +1,63 @@
+;***************Initial Parameters to be defined *************************
+; BOX parameters
+(define nm 1e-3)
+(define Lbox 50) ; Length of BOX
+(define Wbox 275) ; Width of BOX
+
+
+;*************** Starting and Ending points of different structures within *************************
+; Start and End points for all
+; BOX - (000) and (LWH)
+; Body:
+(define xbodylow (/ Lbox -2))
+(define xbodyhigh (/ Lbox 2))
+(define ybodylow (/ Wbox -2))
+(define ybodyhigh  (/ Wbox 2))
+
+;Oxide:
+(define xoxidelow (/ Lbox -2))
+(define xoxidehigh (/ Lbox 2))
+(define yoxidehigh (/ Wbox -2))
+(define yoxidelow (- (/ Wbox -2) 0.03225))
+(sde:display-std "DOE: boxwidth 50")
+
+
+
+(sdegeo:create-rectangle (position xoxidelow yoxidelow 0) (position xoxidehigh yoxidehigh 0) "Anyinsulator" "Gd2O3" )
+(sdegeo:create-rectangle (position  xbodylow ybodylow 0) (position xbodyhigh ybodyhigh 0) "Silicon" "Bulk" )
+
+; Setting region names
+;(sde:addmaterial 
+ ; (find-body-id (position  0 0 0)) 
+  ;"Silicon" "R.Substrate")
+
+;(sde:addmaterial 
+ ; (find-body-id (position (/ (+ xoxidelow xoxidehigh) 2) (/ (+ yoxidelow yoxidehigh) 2) 0)) 
+  ;"Anyinsulator"    "R.Gateox")
+
+;(sde:addmaterial 
+ ; (find-edge-id (position  0 (- (/ Wbox -2) 0.03225) 0)) 
+  ;"Metal"  "R.Gate")
+(sdedr:define-constant-profile "PProfile" "BoronActiveConcentration" 1e+16)
+
+(sdedr:define-constant-profile-region "BulkPlacement" "PProfile" "Bulk")
+
+(sdegeo:define-contact-set "Vb" 4 (color:rgb 1 0 0 ) "##" )
+(sdegeo:define-contact-set "Vg" 4 (color:rgb 0 1 0 ) "##" )
+
+;(sdegeo:set-current-contact-set "Vg")
+(sdegeo:define-2d-contact (find-edge-id (position 0 (- (/ Wbox -2) 0.03225) 0)) "Vg")
+;(sdegeo:set-current-contact-set "Vb")
+(sdegeo:define-2d-contact (find-edge-id (position 0 (/ Wbox 2) 0)) "Vb")
+
+(sdedr:define-refinement-window "oxide_region" "Rectangle"  (position xoxidelow yoxidelow 0) (position xoxidehigh yoxidehigh 0))
+(sdedr:define-refinement-window "global" "Rectangle"  (position xoxidelow yoxidelow 0) (position xbodyhigh ybodyhigh 0) )
+
+
+(sdedr:define-refinement-size "OxideRefinement" 5 0.001 1e1 2.5 0.0005 1e1 )
+(sdedr:define-refinement-size "globalRefinement" 5 5 1e1 2.5 2.5 1e1 )
+
+(sdedr:define-refinement-placement "OxideRef" "OxideRefinement" "oxide_region" )
+(sdedr:define-refinement-placement "globalRef" "globalRefinement" "global" )
+
+(sde:build-mesh "snmesh" " " "MOSCAP_msh@node@")

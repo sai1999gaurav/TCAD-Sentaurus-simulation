@@ -1,0 +1,58 @@
+# This file is the structure creation command file #
+# This is a commented out line 
+
+sde:clear
+
+#### Dimensions parameters (Default is um) ####
+
+(define Ln 500e-3)
+(define Lp 500e-3)
+(define h 1)
+(define Na @Na@)
+(define Nd @Nd@)
+
+
+#### Regions ####
+
+(sdegeo:create-rectangle (position 0 0 0) (position (* -1 Lp) h 0) "Silicon" "p_region")
+(sdegeo:create-rectangle (position 0 0 0) (position Ln h 0) "Silicon" "n_region")
+
+
+#### Doping #####
+
+(sdedr:define-constant-profile "p_doping" "BoronActiveConcentration" Na)
+(sdedr:define-constant-profile-region "p_doping_profile" "p_doping" "p_region")
+
+(sdedr:define-constant-profile "n_doping" "PhosphorusActiveConcentration" Nd)
+(sdedr:define-constant-profile-region "n_doping_profile" "n_doping" "n_region")
+
+
+#### Contacts #####
+
+(sdegeo:define-contact-set "p_contact" 4.0 (color:rgb 1.0 0.0 0.0 ) "##")
+(sdegeo:define-contact-set "n_contact" 4.0 (color:rgb 0.0 1.0 0.0 ) "||")
+
+(sdegeo:define-2d-contact (find-edge-id (position (* -1 Lp) (/ h 2) 0)) "p_contact")
+(sdegeo:define-2d-contact (find-edge-id (position Ln (/ h 2) 0)) "n_contact")
+
+(sde:save-model "pn_diode")
+
+
+#### Global course mesh ####
+
+(sdedr:define-refeval-window "RefWin.Global" "Rectangle" (position (* -1 Lp) h 0) (position Ln 0 0))
+(sdedr:define-refinement-size "RefDef.Global" (/ Lp 100) (/ h 20) (/ Lp 100) (/ h 20) 1 1)
+(sdedr:define-refinement-placement "Place.Global" "RefDef.Global" "RefWin.Global" )
+
+
+#### Junction fine mesh ####
+
+(sdedr:define-refeval-window "RefWin.Dep" "Rectangle" (position (/ (* -1 Lp) 5) h 0) (position (/ Ln 5) 0 0))
+(sdedr:define-refinement-size "RefDef.Dep" (/ Lp 500) (/ h 20) (/ Lp 500) (/ h 20) 1 1)
+(sdedr:define-refinement-placement "Place.Dep" "RefDef.Dep" "RefWin.Dep" )
+
+
+#### Generate mesh ####
+
+(sde:build-mesh "snmesh" "" "pn_diode")
+
